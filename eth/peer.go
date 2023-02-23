@@ -19,6 +19,7 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA.SideChain.EID/log"
 	"math/big"
 	"sync"
 	"time"
@@ -625,6 +626,29 @@ func (ps *peerSet) BestPeer() *peer {
 		if _, td := p.Head(); bestPeer == nil || td.Cmp(bestTd) > 0 {
 			bestPeer, bestTd = p, td
 		}
+	}
+	return bestPeer
+}
+
+// BestPeer retrieves the known peer with the currently highest total difficulty.
+func (ps *peerSet) BestPeerWithLog() *peer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	var (
+		bestPeer *peer
+		bestTd   *big.Int
+	)
+	for _, p := range ps.peers {
+		if _, td := p.Head(); bestPeer == nil || td.Cmp(bestTd) > 0 {
+			bestPeer, bestTd = p, td
+		}
+	}
+
+	if bestPeer != nil {
+		log.Info("### bestPeer:", bestPeer.String(), "td:", bestTd.String())
+	} else {
+		log.Info("### not found best peer")
 	}
 	return bestPeer
 }

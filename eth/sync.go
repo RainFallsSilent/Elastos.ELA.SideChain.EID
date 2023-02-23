@@ -141,6 +141,9 @@ func (pm *ProtocolManager) syncer() {
 	forceSync := time.NewTicker(forceSyncCycle)
 	defer forceSync.Stop()
 
+	printPeers := time.NewTicker(time.Minute)
+	defer printPeers.Stop()
+
 	for {
 		select {
 		case <-pm.newPeerCh:
@@ -153,6 +156,14 @@ func (pm *ProtocolManager) syncer() {
 		case <-forceSync.C:
 			// Force a sync even if not enough peers are present
 			go pm.synchronise(pm.peers.BestPeer())
+
+		case <-printPeers.C:
+			log.Info("### peer count:", len(pm.peers.peers))
+			for k, v := range pm.peers.peers {
+				log.Info("### PID:", k, "peer:", v.String(), "td:", v.td.String())
+			}
+			// Force a sync even if not enough peers are present
+			go pm.synchroniseWithLog(pm.peers.BestPeerWithLog())
 
 		case <-pm.noMorePeers:
 			return
@@ -188,6 +199,64 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	}
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
 	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
+		return
+	}
+	if atomic.LoadUint32(&pm.fastSync) == 1 {
+		log.Info("Fast sync complete, auto disabling")
+		atomic.StoreUint32(&pm.fastSync, 0)
+	}
+	// If we've successfully finished a sync cycle and passed any required checkpoint,
+	// enable accepting transactions from the network.
+	head := pm.blockchain.CurrentBlock()
+	if head.NumberU64() >= pm.checkpointNumber {
+		// Checkpoint passed, sanity check the timestamp to have a fallback mechanism
+		// for non-checkpointed (number = 0) private networks.
+		if head.Time() >= uint64(time.Now().AddDate(0, -1, 0).Unix()) {
+			atomic.StoreUint32(&pm.acceptTxs, 1)
+		}
+	}
+	if head.NumberU64() > 0 {
+		// We've completed a sync cycle, notify all peers of new state. This path is
+		// essential in star-topology networks where a gateway node needs to notify
+		// all its out-of-date peers of the availability of a new block. This failure
+		// scenario will most often crop up in private and hackathon networks with
+		// degenerate connectivity, but it should be healthy for the mainnet too to
+		// more reliably update peers or the local TD state.
+		go pm.BroadcastBlock(head, false)
+	}
+}
+
+// synchronise tries to sync up our local block chain with a remote peer.
+func (pm *ProtocolManager) synchroniseWithLog(peer *peer) {
+	// Short circuit if no peers are available
+	if peer == nil {
+		return
+	}
+	// Make sure the peer's TD is higher than our own
+	currentBlock := pm.blockchain.CurrentBlock()
+	td := pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
+
+	pHead, pTd := peer.Head()
+	if pTd.Cmp(td) <= 0 {
+		log.Info("### td equal:", td.String())
+		return
+	}
+	// Otherwise try to sync with the downloader
+	mode := downloader.FullSync
+	if atomic.LoadUint32(&pm.fastSync) == 1 {
+		// Fast sync was explicitly requested, and explicitly granted
+		mode = downloader.FastSync
+	}
+	if mode == downloader.FastSync {
+		// Make sure the peer's total difficulty we are synchronizing is higher.
+		if pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash()).Cmp(pTd) >= 0 {
+			log.Info("### td check return")
+			return
+		}
+	}
+	// Run the sync cycle, and disable fast sync if we've went past the pivot block
+	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
+		log.Error("### sync error:", err.Error())
 		return
 	}
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
