@@ -631,7 +631,7 @@ func (ps *peerSet) BestPeer() *peer {
 }
 
 // BestPeer retrieves the known peer with the currently highest total difficulty.
-func (ps *peerSet) BestPeerWithLog() *peer {
+func (ps *peerSet) BestPeerWithLog(myTD *big.Int) *peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -640,13 +640,14 @@ func (ps *peerSet) BestPeerWithLog() *peer {
 		bestTd   *big.Int
 	)
 	for _, p := range ps.peers {
-		if _, td := p.Head(); bestPeer == nil || td.Cmp(bestTd) > 0 {
+		if _, td := p.Head(); td.Cmp(myTD) > 0 {
 			bestPeer, bestTd = p, td
+			break
 		}
 	}
 
 	if bestPeer != nil {
-		log.Info("### bestPeer:", bestPeer.String(), "td:", bestTd.String())
+		log.Info("### ", "bestPeer:", bestPeer.String(), "td:", bestTd.String())
 	} else {
 		log.Info("### not found best peer")
 	}

@@ -144,6 +144,9 @@ func (pm *ProtocolManager) syncer() {
 	printPeers := time.NewTicker(time.Minute)
 	defer printPeers.Stop()
 
+	currentBlock := pm.blockchain.CurrentBlock()
+	td := pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
+
 	for {
 		select {
 		case <-pm.newPeerCh:
@@ -151,19 +154,19 @@ func (pm *ProtocolManager) syncer() {
 			if pm.peers.Len() < minDesiredPeerCount {
 				break
 			}
-			go pm.synchronise(pm.peers.BestPeer())
+			go pm.synchronise(pm.peers.BestPeerWithLog(td))
 
 		case <-forceSync.C:
 			// Force a sync even if not enough peers are present
-			go pm.synchronise(pm.peers.BestPeer())
+			go pm.synchronise(pm.peers.BestPeerWithLog(td))
 
 		case <-printPeers.C:
-			log.Info("### peer count:", len(pm.peers.peers))
+			log.Info("### ", "peer count:", len(pm.peers.peers))
 			for k, v := range pm.peers.peers {
-				log.Info("### PID:", k, "peer:", v.String(), "td:", v.td.String())
+				log.Info("### ", "PID:", k, "peer:", v.String(), "td:", v.td.String())
 			}
 			// Force a sync even if not enough peers are present
-			go pm.synchroniseWithLog(pm.peers.BestPeerWithLog())
+			go pm.synchroniseWithLog(pm.peers.BestPeerWithLog(td))
 
 		case <-pm.noMorePeers:
 			return
@@ -238,7 +241,7 @@ func (pm *ProtocolManager) synchroniseWithLog(peer *peer) {
 
 	pHead, pTd := peer.Head()
 	if pTd.Cmp(td) <= 0 {
-		log.Info("### td equal:", td.String())
+		log.Info("### ", "td equal:", td.String())
 		return
 	}
 	// Otherwise try to sync with the downloader
@@ -256,7 +259,7 @@ func (pm *ProtocolManager) synchroniseWithLog(peer *peer) {
 	}
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
 	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
-		log.Error("### sync error:", err.Error())
+		log.Error("### ", "sync error:", err.Error())
 		return
 	}
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
