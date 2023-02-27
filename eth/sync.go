@@ -154,11 +154,11 @@ func (pm *ProtocolManager) syncer() {
 			if pm.peers.Len() < minDesiredPeerCount {
 				break
 			}
-			go pm.synchronise(pm.peers.BestPeerWithLog(td))
+			go pm.synchroniseWithLog(pm.peers.BestPeerWithLog(td))
 
 		case <-forceSync.C:
 			// Force a sync even if not enough peers are present
-			go pm.synchronise(pm.peers.BestPeerWithLog(td))
+			go pm.synchroniseWithLog(pm.peers.BestPeerWithLog(td))
 
 		case <-printPeers.C:
 			log.Info("### ", "peer count:", len(pm.peers.peers))
