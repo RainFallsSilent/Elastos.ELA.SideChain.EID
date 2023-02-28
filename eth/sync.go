@@ -235,6 +235,7 @@ func (pm *ProtocolManager) synchroniseWithLog(peer *peer) {
 	if peer == nil {
 		return
 	}
+	log.Info("@@@ sync start", "peer:", peer.id)
 	// Make sure the peer's TD is higher than our own
 	currentBlock := pm.blockchain.CurrentBlock()
 	td := pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
@@ -242,6 +243,7 @@ func (pm *ProtocolManager) synchroniseWithLog(peer *peer) {
 	pHead, pTd := peer.Head()
 	if pTd.Cmp(td) <= 0 {
 		log.Info("### ", "td equal:", td.String())
+		log.Info("@@@ sync end1", "peer:", peer.id)
 		return
 	}
 	// Otherwise try to sync with the downloader
@@ -254,12 +256,14 @@ func (pm *ProtocolManager) synchroniseWithLog(peer *peer) {
 		// Make sure the peer's total difficulty we are synchronizing is higher.
 		if pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash()).Cmp(pTd) >= 0 {
 			log.Info("### td check return")
+			log.Info("@@@ sync end2", "peer:", peer.id)
 			return
 		}
 	}
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
 	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
 		log.Error("### ", "sync error:", err.Error())
+		log.Info("@@@ sync end3", "peer:", peer.id)
 		return
 	}
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
@@ -285,4 +289,5 @@ func (pm *ProtocolManager) synchroniseWithLog(peer *peer) {
 		// more reliably update peers or the local TD state.
 		go pm.BroadcastBlock(head, false)
 	}
+	log.Info("@@@ sync end4", "peer:", peer.id)
 }

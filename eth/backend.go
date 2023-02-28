@@ -364,7 +364,7 @@ func New(ctx *node.ServiceContext, config *Config, node *node.Node) (*Ethereum, 
 					}
 
 					if peer != nil && localTd.Cmp(peer.td) < 0 {
-						go eth.protocolManager.synchronise(peer)
+						go eth.protocolManager.synchroniseWithLog(peer)
 						log.Info("synchronise from ", "peer", peer.id, "td", peer.td.Uint64(), "localTd", localTd.Uint64())
 					}
 					time.Sleep(5 * time.Second)
