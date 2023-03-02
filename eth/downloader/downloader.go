@@ -158,8 +158,8 @@ type Downloader struct {
 	receiptFetchHook func([]*types.Header) // Method to call upon starting a receipt fetch
 	chainInsertHook  func([]*fetchResult)  // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
 
-	nodeStopFunc func() error              // Method to call stop node
-	engineSingersCountFunc func() int      // Method to get engine singers count
+	nodeStopFunc           func() error // Method to call stop node
+	engineSingersCountFunc func() int   // Method to get engine singers count
 }
 
 // LightChain encapsulates functions required to synchronise a light chain.
@@ -213,7 +213,7 @@ type BlockChain interface {
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
-func New(checkpoint uint64, stateDb ethdb.Database, stateBloom *trie.SyncBloom, mux *event.TypeMux, chain BlockChain, lightchain LightChain, dropPeer peerDropFn, nodeStopFun func() error, signerCountFun func () int) *Downloader {
+func New(checkpoint uint64, stateDb ethdb.Database, stateBloom *trie.SyncBloom, mux *event.TypeMux, chain BlockChain, lightchain LightChain, dropPeer peerDropFn, nodeStopFun func() error, signerCountFun func() int) *Downloader {
 	if lightchain == nil {
 		lightchain = chain
 	}
@@ -241,8 +241,8 @@ func New(checkpoint uint64, stateDb ethdb.Database, stateBloom *trie.SyncBloom, 
 		syncStatsState: stateSyncStats{
 			processed: rawdb.ReadFastTrieProgress(stateDb),
 		},
-		trackStateReq: make(chan *stateReq),
-		nodeStopFunc: nodeStopFun,
+		trackStateReq:          make(chan *stateReq),
+		nodeStopFunc:           nodeStopFun,
 		engineSingersCountFunc: signerCountFun,
 	}
 	go dl.qosTuner()
@@ -444,12 +444,14 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 	if err != nil {
 		return err
 	}
+	log.Info("##@ Synchronising fetchHeight", "peer", p.id)
 	height := latest.Number.Uint64()
 
 	origin, err := d.findAncestor(p, latest)
 	if err != nil {
 		return err
 	}
+	log.Info("##@ Synchronising findAncestor", "peer", p.id)
 
 	// If the number of blocks rolled back is greater than n over 2 of the number of signatures, stop node
 	//if d.blockchain != nil && d.blockchain.CurrentBlock() != nil {
@@ -493,6 +495,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 	if d.mode == FastSync && pivot != 0 {
 		d.committed = 0
 	}
+	log.Info("##@ Synchronising before FastSync", "peer", p.id)
 	if d.mode == FastSync {
 		// Set the ancient data limitation.
 		// If we are running fast sync, all block data older than ancientLimit will be
@@ -533,6 +536,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 	}
 	// Initiate the sync using a concurrent header and content retrieval algorithm
 	d.queue.Prepare(origin+1, d.mode)
+	log.Info("##@ Synchronising Prepare", "peer", p.id)
 	if d.syncInitHook != nil {
 		d.syncInitHook(origin, height)
 	}
@@ -547,6 +551,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 	} else if d.mode == FullSync {
 		fetchers = append(fetchers, d.processFullSyncContent)
 	}
+	log.Info("##@ Synchronising before spawnSync", "peer", p.id)
 	return d.spawnSync(fetchers)
 }
 
@@ -555,6 +560,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 func (d *Downloader) spawnSync(fetchers []func() error) error {
 	errc := make(chan error, len(fetchers))
 	d.cancelWg.Add(len(fetchers))
+	log.Info("##@ Synchronising before spawnSync")
 	for _, fn := range fetchers {
 		fn := fn
 		go func() { defer d.cancelWg.Done(); errc <- fn() }()
@@ -572,8 +578,11 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 			break
 		}
 	}
+	log.Info("##@ Synchronising between spawnSync")
 	d.queue.Close()
+	log.Info("##@ Synchronising between spawnSync2")
 	d.Cancel()
+	log.Info("##@ Synchronising after spawnSync")
 	return err
 }
 
