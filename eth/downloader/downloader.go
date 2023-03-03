@@ -572,9 +572,14 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 			// Close the queue when all fetchers have exited.
 			// This will cause the block processor to end when
 			// it has processed the queue.
+			log.Info("##@ Synchronising fetchers before close")
 			d.queue.Close()
+			log.Info("##@ Synchronising fetchers closed")
 		}
-		if err = <-errc; err != nil && err != errCanceled {
+		log.Info("##@ Synchronising fetchers", "i:", i)
+		err = <-errc
+		log.Info("##@ Synchronising", "i:", i, "err:", err)
+		if err != nil && err != errCanceled {
 			break
 		}
 	}
@@ -944,6 +949,8 @@ func (d *Downloader) findAncestor(p *peerConnection, remoteHeader *types.Header)
 // can fill in the skeleton - not even the origin peer - it's assumed invalid and
 // the origin is dropped.
 func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) error {
+	log.Info("##@ Synchronising fetchHeaders start")
+	defer log.Info("##@ Synchronising fetchHeaders end")
 	p.log.Debug("Directing header downloads", "origin", from)
 	defer p.log.Debug("Header download terminated")
 
@@ -1148,6 +1155,8 @@ func (d *Downloader) fillHeaderSkeleton(from uint64, skeleton []*types.Header) (
 // available peers, reserving a chunk of blocks for each, waiting for delivery
 // and also periodically checking for timeouts.
 func (d *Downloader) fetchBodies(from uint64) error {
+	log.Info("##@ Synchronising fetchBodies start")
+	defer log.Info("##@ Synchronising fetchBodies end")
 	log.Debug("Downloading block bodies", "origin", from)
 
 	var (
@@ -1172,6 +1181,8 @@ func (d *Downloader) fetchBodies(from uint64) error {
 // available peers, reserving a chunk of receipts for each, waiting for delivery
 // and also periodically checking for timeouts.
 func (d *Downloader) fetchReceipts(from uint64) error {
+	log.Info("##@ Synchronising fetchReceipts start")
+	defer log.Info("##@ Synchronising fetchReceipts end")
 	log.Debug("Downloading transaction receipts", "origin", from)
 
 	var (
@@ -1392,6 +1403,8 @@ func (d *Downloader) fetchParts(deliveryCh chan dataPack, deliver func(dataPack)
 // keeps processing and scheduling them into the header chain and downloader's
 // queue until the stream ends or a failure occurs.
 func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int) error {
+	log.Info("##@ Synchronising processHeaders start")
+	defer log.Info("##@ Synchronising processHeaders end")
 	// Keep a count of uncertain headers to roll back
 	var rollback []*types.Header
 	defer func() {
@@ -1555,6 +1568,8 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int) er
 
 // processFullSyncContent takes fetch results from the queue and imports them into the chain.
 func (d *Downloader) processFullSyncContent() error {
+	log.Info("##@ Synchronising processFullSyncContent start")
+	defer log.Info("##@ Synchronising processFullSyncContent end")
 	for {
 		results := d.queue.Results(true)
 		if len(results) == 0 {
