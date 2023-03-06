@@ -351,17 +351,28 @@ func (q *queue) Schedule(headers []*types.Header, from uint64) []*types.Header {
 // the cache. the result slice will be empty if the queue has been closed.
 func (q *queue) Results(block bool) []*fetchResult {
 	q.lock.Lock()
+	log.Info("##@ Synchronising Results start")
 	defer q.lock.Unlock()
+	defer log.Info("##@ Synchronising Results end")
 
 	// Count the number of items available for processing
 	nproc := q.countProcessableItems()
+	log.Info("##@ Synchronising Results countProcessableItems", "nproc:", nproc)
+	var count int
 	for nproc == 0 && !q.closed {
+		count++
 		if !block {
+			log.Info("##@ Synchronising Results countProcessableItems for end")
 			return nil
 		}
+		log.Info("##@ Synchronising Results countProcessableItems Wait start")
 		q.active.Wait()
+		log.Info("##@ Synchronising Results countProcessableItems Wait end")
 		nproc = q.countProcessableItems()
+		log.Info("##@ Synchronising Results countProcessableItems", "nproc:", nproc, "count:", count)
+
 	}
+	log.Info("##@ Synchronising Results countProcessableItems 2")
 	// Since we have a batch limit, don't pull more into "dangling" memory
 	if nproc > maxResultsProcess {
 		nproc = maxResultsProcess

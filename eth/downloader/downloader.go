@@ -1565,24 +1565,32 @@ func (d *Downloader) processFullSyncContent() error {
 	for {
 		results := d.queue.Results(true)
 		if len(results) == 0 {
+			log.Info("##@ Synchronising processFullSyncContent return 1")
 			return nil
 		}
+		log.Info("##@ Synchronising processFullSyncContent Results")
 		if d.chainInsertHook != nil {
 			d.chainInsertHook(results)
+			log.Info("##@ Synchronising processFullSyncContent chainInsertHook")
 		}
 		if err := d.importBlockResults(results); err != nil {
+			log.Info("##@ Synchronising processFullSyncContent return err")
 			return err
 		}
+		log.Info("##@ Synchronising processFullSyncContent importBlockResults")
 	}
 }
 
 func (d *Downloader) importBlockResults(results []*fetchResult) error {
 	// Check for any early termination requests
+	log.Info("##@ Synchronising processFullSyncContent importBlockResults start")
 	if len(results) == 0 {
+		log.Info("##@ Synchronising processFullSyncContent importBlockResults return 3")
 		return nil
 	}
 	select {
 	case <-d.quitCh:
+		log.Info("##@ Synchronising processFullSyncContent importBlockResults return 4")
 		return errCancelContentProcessing
 	default:
 	}
@@ -1592,11 +1600,14 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 		"firstnum", first.Number, "firsthash", first.Hash(),
 		"lastnum", last.Number, "lasthash", last.Hash(),
 	)
+
 	blocks := make([]*types.Block, len(results))
 	for i, result := range results {
 		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.Uncles)
 	}
+	log.Info("##@ Synchronising processFullSyncContent importBlockResults NewBlockWithHeader")
 	if index, err := d.blockchain.InsertChain(blocks); err != nil {
+		log.Info("##@ Synchronising processFullSyncContent importBlockResults InsertChain", "err:", err)
 		if index < len(results) {
 			log.Debug("Downloaded item processing failed", "number", results[index].Header.Number, "hash", results[index].Header.Hash(), "err", err)
 		} else {
@@ -1608,6 +1619,9 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 		}
 		return errInvalidChain
 	}
+	log.Info("##@ Synchronising processFullSyncContent importBlockResults InsertChain")
+	log.Info("##@ Synchronising processFullSyncContent importBlockResults end")
+
 	return nil
 }
 
