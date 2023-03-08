@@ -568,6 +568,14 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 	// Wait for the first error, then terminate the others.
 	var err error
 	for i := 0; i < len(fetchers); i++ {
+		if i == len(fetchers)-1 {
+			// Close the queue when all fetchers have exited.
+			// This will cause the block processor to end when
+			// it has processed the queue.
+			log.Info("##@ Synchronising fetchers before close")
+			d.queue.Close()
+			log.Info("##@ Synchronising fetchers closed")
+		}
 		log.Info("##@ Synchronising fetchers", "i:", i)
 		err = <-errc
 		log.Info("##@ Synchronising", "i:", i, "err:", err)
