@@ -1495,6 +1495,7 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 		return 0, nil
 	}
 
+	log.Info("##@ Synchronising processFullSyncContent importBlockResults InsertChain 1")
 	bc.blockProcFeed.Send(true)
 	defer bc.blockProcFeed.Send(false)
 
@@ -1518,11 +1519,16 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 	// Pre-checks passed, start the full block imports
 	bc.wg.Add(1)
 	bc.chainmu.Lock()
+	log.Info("##@ Synchronising processFullSyncContent importBlockResults InsertChain 2")
 	n, events, logs, err := bc.insertChain(chain, true)
+	log.Info("##@ Synchronising processFullSyncContent importBlockResults InsertChain 3")
 	bc.chainmu.Unlock()
 	bc.wg.Done()
+	log.Info("##@ Synchronising processFullSyncContent importBlockResults InsertChain 4")
 
 	bc.PostChainEvents(events, logs)
+	log.Info("##@ Synchronising processFullSyncContent importBlockResults InsertChain 5")
+
 	return n, err
 }
 
@@ -1563,6 +1569,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 // is imported, but then new canon-head is added before the actual sidechain
 // completes, then the historic state could be pruned again
 func (bc *BlockChain) insertBlockChain(chain types.Blocks, verifySeals bool, engine consensus.Engine) (int, []interface{}, []*types.Log, error) {
+	log.Info("##@ Synchronising processFullSyncContent importBlockResults insertBlockChain start")
+	defer log.Info("##@ Synchronising processFullSyncContent importBlockResults insertBlockChain okk")
 	// If the chain is terminating, don't even bother starting up
 	if atomic.LoadInt32(&bc.procInterrupt) == 1 {
 		return 0, nil, nil, nil
@@ -1670,7 +1678,10 @@ func (bc *BlockChain) insertBlockChain(chain types.Blocks, verifySeals bool, eng
 		return it.index, events, coalescedLogs, err
 	}
 	// No validation errors for the first block (or chain prefix skipped)
+	var count int
 	for ; block != nil && err == nil || err == ErrKnownBlock; block, err = it.next() {
+		count++
+		log.Info("##@ Synchronising processFullSyncContent importBlockResults insertBlockChain", "count:", count)
 		// If the chain is terminating, stop processing blocks
 		if atomic.LoadInt32(&bc.procInterrupt) == 1 {
 			log.Debug("Premature abort during blocks processing")
@@ -1826,15 +1837,20 @@ func (bc *BlockChain) insertBlockChain(chain types.Blocks, verifySeals bool, eng
 
 		dirty, _ := bc.stateCache.TrieDB().Size()
 		stats.report(chain, it.index, dirty)
+		log.Info("##@ Synchronising processFullSyncContent importBlockResults insertBlockChain 2", "count:", count)
 	}
+
+	log.Info("##@ Synchronising processFullSyncContent importBlockResults insertBlockChain for end")
 	// Any blocks remaining here? The only ones we care about are the future ones
 	if block != nil && err == consensus.ErrFutureBlock {
+		log.Info("##@ Synchronising processFullSyncContent importBlockResults insertBlockChain 1")
 		if err := bc.addFutureBlock(block); err != nil {
 			return it.index, events, coalescedLogs, err
 		}
 		block, err = it.next()
 
 		for ; block != nil && err == consensus.ErrUnknownAncestor; block, err = it.next() {
+			log.Info("##@ Synchronising processFullSyncContent importBlockResults insertBlockChain 2")
 			if err := bc.addFutureBlock(block); err != nil {
 				return it.index, events, coalescedLogs, err
 			}
@@ -1842,11 +1858,13 @@ func (bc *BlockChain) insertBlockChain(chain types.Blocks, verifySeals bool, eng
 		}
 	}
 	stats.ignored += it.remaining()
+	log.Info("##@ Synchronising processFullSyncContent importBlockResults insertBlockChain 3")
 
 	// Append a single chain head event if we've progressed the chain
 	if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
 		events = append(events, ChainHeadEvent{lastCanon})
 	}
+	log.Info("##@ Synchronising processFullSyncContent importBlockResults insertBlockChain 4")
 	return it.index, events, coalescedLogs, err
 }
 
@@ -2192,13 +2210,19 @@ func (bc *BlockChain) PostChainEvents(events []interface{}, logs []*types.Log) {
 	for _, event := range events {
 		switch ev := event.(type) {
 		case ChainEvent:
+			log.Info("##@ Synchronising processFullSyncContent ChainEvent start")
 			bc.chainFeed.Send(ev)
+			log.Info("##@ Synchronising processFullSyncContent ChainEvent end")
 
 		case ChainHeadEvent:
+			log.Info("##@ Synchronising processFullSyncContent ChainHeadEvent start")
 			bc.chainHeadFeed.Send(ev)
+			log.Info("##@ Synchronising processFullSyncContent ChainHeadEvent end")
 
 		case ChainSideEvent:
+			log.Info("##@ Synchronising processFullSyncContent ChainSideEvent start")
 			bc.chainSideFeed.Send(ev)
+			log.Info("##@ Synchronising processFullSyncContent ChainSideEvent end")
 		}
 	}
 }
