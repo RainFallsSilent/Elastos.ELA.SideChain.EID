@@ -1526,7 +1526,7 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 	bc.wg.Done()
 	log.Info("##@ Synchronising processFullSyncContent importBlockResults InsertChain 4")
 
-	bc.PostChainEvents(events, logs)
+	go bc.PostChainEvents(events, logs)
 	log.Info("##@ Synchronising processFullSyncContent importBlockResults InsertChain 5")
 
 	return n, err
