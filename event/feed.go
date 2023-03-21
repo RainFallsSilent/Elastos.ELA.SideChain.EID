@@ -18,6 +18,7 @@ package event
 
 import (
 	"errors"
+	"github.com/elastos/Elastos.ELA.SideChain.EID/log"
 	"reflect"
 	"sync"
 )
@@ -127,13 +128,17 @@ func (f *Feed) remove(sub *feedSub) {
 // Send delivers to all subscribed channels simultaneously.
 // It returns the number of subscribers that the value was sent to.
 func (f *Feed) Send(value interface{}) (nsent int) {
+	log.Info("##@ Send start 0")
 	rvalue := reflect.ValueOf(value)
 
 	f.once.Do(f.init)
+	log.Info("##@ Send start 1")
 	<-f.sendLock
+	log.Info("##@ Send start 2")
 
 	// Add new cases from the inbox after taking the send lock.
 	f.mu.Lock()
+	log.Info("##@ Send start 3")
 	f.sendCases = append(f.sendCases, f.inbox...)
 	f.inbox = nil
 
@@ -142,6 +147,7 @@ func (f *Feed) Send(value interface{}) (nsent int) {
 		panic(feedTypeError{op: "Send", got: rvalue.Type(), want: f.etype})
 	}
 	f.mu.Unlock()
+	log.Info("##@ Send start 4")
 
 	// Set the sent value on all channels.
 	for i := firstSubSendCase; i < len(f.sendCases); i++ {
@@ -185,7 +191,9 @@ func (f *Feed) Send(value interface{}) (nsent int) {
 	for i := firstSubSendCase; i < len(f.sendCases); i++ {
 		f.sendCases[i].Send = reflect.Value{}
 	}
+	log.Info("##@ Send start 5")
 	f.sendLock <- struct{}{}
+	log.Info("##@ Send start 6")
 	return nsent
 }
 
