@@ -21,6 +21,7 @@ import (
 	"github.com/elastos/Elastos.ELA.SideChain.EID/log"
 	"reflect"
 	"sync"
+	"sync/atomic"
 )
 
 var errBadChannel = errors.New("event: Subscribe argument does not have sendable channel type")
@@ -44,6 +45,8 @@ type Feed struct {
 	inbox  caseList
 	etype  reflect.Type
 	closed bool
+
+	count int32
 }
 
 // This is the index of the first actual subscription channel in sendCases.
@@ -128,7 +131,9 @@ func (f *Feed) remove(sub *feedSub) {
 // Send delivers to all subscribed channels simultaneously.
 // It returns the number of subscribers that the value was sent to.
 func (f *Feed) Send(value interface{}) (nsent int) {
-	log.Info("##@ Send start 0")
+	newCount := atomic.AddInt32(&f.count, 1)
+	log.Info("##@ Send start 0, task count:", newCount)
+
 	rvalue := reflect.ValueOf(value)
 
 	f.once.Do(f.init)
@@ -193,7 +198,8 @@ func (f *Feed) Send(value interface{}) (nsent int) {
 	}
 	log.Info("##@ Send start 5")
 	f.sendLock <- struct{}{}
-	log.Info("##@ Send start 6")
+	remainCount := atomic.AddInt32(&f.count, -1)
+	log.Info("##@ Send start 6, remain task count:", remainCount)
 	return nsent
 }
 
