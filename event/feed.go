@@ -163,10 +163,12 @@ func (f *Feed) Send(value interface{}, tt string) (nsent int) {
 	// of sendCases. When a send succeeds, the corresponding case moves to the end of
 	// 'cases' and it shrinks by one element.
 	cases := f.sendCases
+	log.Info("##@ Send start for start", "send type:", tt)
 	for {
 		// Fast path: try sending without blocking before adding to the select set.
 		// This should usually succeed if subscribers are fast enough and have free
 		// buffer space.
+		log.Info("##@ Send start for 1", "send type:", tt)
 		for i := firstSubSendCase; i < len(cases); i++ {
 			if cases[i].Chan.TrySend(rvalue) {
 				nsent++
@@ -175,10 +177,13 @@ func (f *Feed) Send(value interface{}, tt string) (nsent int) {
 			}
 		}
 		if len(cases) == firstSubSendCase {
+			log.Info("##@ Send start for end", "send type:", tt)
 			break
 		}
 		// Select on all the receivers, waiting for them to unblock.
+		log.Info("##@ Send start for 2", "send type:", tt)
 		chosen, recv, _ := reflect.Select(cases)
+		log.Info("##@ Send start for 3", "send type:", tt)
 		if chosen == 0 /* <-f.removeSub */ {
 			index := f.sendCases.find(recv.Interface())
 			f.sendCases = f.sendCases.delete(index)
@@ -190,6 +195,7 @@ func (f *Feed) Send(value interface{}, tt string) (nsent int) {
 			cases = cases.deactivate(chosen)
 			nsent++
 		}
+		log.Info("##@ Send start for 4", "send type:", tt)
 	}
 
 	// Forget about the sent value and hand off the send lock.
