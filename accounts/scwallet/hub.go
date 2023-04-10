@@ -257,7 +257,7 @@ func (hub *Hub) refreshWallets() {
 	hub.stateLock.Unlock()
 
 	for _, event := range events {
-		hub.updateFeed.Send(event)
+		hub.updateFeed.Send(event, "22")
 	}
 }
 

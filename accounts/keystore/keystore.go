@@ -172,7 +172,7 @@ func (ks *KeyStore) refreshWallets() {
 
 	// Fire all wallet events and return
 	for _, event := range events {
-		ks.updateFeed.Send(event)
+		ks.updateFeed.Send(event, "28")
 	}
 }
 

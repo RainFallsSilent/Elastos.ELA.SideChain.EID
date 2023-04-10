@@ -1415,7 +1415,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		err = errors.New("too many evil signers on the chain")
 		log.Error(err.Error())
 		go func() {
-			bc.dangerousFeed.Send(DangerousChainSideEvent{})
+			bc.dangerousFeed.Send(DangerousChainSideEvent{}, "10")
 		}()
 		return SideStatTy, err
 	}
@@ -1496,8 +1496,8 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 	}
 
 	log.Info("##@ Synchronising processFullSyncContent importBlockResults InsertChain 1")
-	bc.blockProcFeed.Send(true)
-	defer bc.blockProcFeed.Send(false)
+	bc.blockProcFeed.Send(true, "11")
+	defer bc.blockProcFeed.Send(false, "12")
 
 	// Remove already known canon-blocks
 	var (
@@ -1885,7 +1885,7 @@ func (bc *BlockChain) OnSyncHeader(header *types.Header) {
 			&peer.PeersInfo{CurrentPeers: producers, NextPeers: []peer.PID{}})
 	}
 	if height >= cfg.PBFTBlock.Uint64() && bc.engine != bc.pbftEngine {
-		bc.engineChange.Send(EngineChangeEvent{})
+		bc.engineChange.Send(EngineChangeEvent{}, "13")
 	}
 }
 
@@ -2131,14 +2131,14 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 			log.Error(msg, "singerCount", blocksigner.GetBlockSignersCount()/2, "number", commonBlock.Number(), "hash", commonBlock.Hash(),
 				"drop", len(oldChain), "dropfrom", oldChain[0].Hash(), "add", len(newChain), "addfrom", newChain[0].Hash())
 			defer func() {
-				bc.dangerousFeed.Send(DangerousChainSideEvent{})
+				bc.dangerousFeed.Send(DangerousChainSideEvent{}, "14")
 			}()
 			return fmt.Errorf("Dangerous new chain")
 		}
 	} else {
 		if bc.engine.SignersCount() > 0 && len(oldChain) >= IrreversibleHeight {
 			defer func() {
-				bc.dangerousFeed.Send(DangerousChainSideEvent{})
+				bc.dangerousFeed.Send(DangerousChainSideEvent{}, "15")
 			}()
 			return fmt.Errorf("final confirm chain , from:%d, to:%d", oldChain[0].NumberU64(), oldChain[len(oldChain)-1].NumberU64())
 		}
@@ -2185,14 +2185,14 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	// event ordering?
 	go func() {
 		if len(deletedLogs) > 0 {
-			bc.rmLogsFeed.Send(RemovedLogsEvent{deletedLogs})
+			bc.rmLogsFeed.Send(RemovedLogsEvent{deletedLogs}, "16")
 		}
 		if len(rebirthLogs) > 0 {
-			bc.logsFeed.Send(rebirthLogs)
+			bc.logsFeed.Send(rebirthLogs, "17")
 		}
 		if len(oldChain) > 0 {
 			for _, block := range oldChain {
-				bc.chainSideFeed.Send(ChainSideEvent{Block: block})
+				bc.chainSideFeed.Send(ChainSideEvent{Block: block}, "18")
 			}
 		}
 	}()
@@ -2205,23 +2205,23 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 func (bc *BlockChain) PostChainEvents(events []interface{}, logs []*types.Log) {
 	// post event logs for further processing
 	if logs != nil {
-		bc.logsFeed.Send(logs)
+		bc.logsFeed.Send(logs, "19")
 	}
 	for _, event := range events {
 		switch ev := event.(type) {
 		case ChainEvent:
 			log.Info("##@ Synchronising processFullSyncContent ChainEvent start")
-			bc.chainFeed.Send(ev)
+			bc.chainFeed.Send(ev, "20")
 			log.Info("##@ Synchronising processFullSyncContent ChainEvent end")
 
 		case ChainHeadEvent:
 			log.Info("##@ Synchronising processFullSyncContent ChainHeadEvent start")
-			bc.chainHeadFeed.Send(ev)
+			bc.chainHeadFeed.Send(ev, "21")
 			log.Info("##@ Synchronising processFullSyncContent ChainHeadEvent end")
 
 		case ChainSideEvent:
 			log.Info("##@ Synchronising processFullSyncContent ChainSideEvent start")
-			bc.chainSideFeed.Send(ev)
+			bc.chainSideFeed.Send(ev, "25")
 			log.Info("##@ Synchronising processFullSyncContent ChainSideEvent end")
 		}
 	}

@@ -184,7 +184,7 @@ func (c *meteredConn) handshakeDone(id enode.ID) {
 		IP:      c.ip,
 		ID:      id,
 		Elapsed: time.Since(c.connected),
-	})
+	}, "3")
 }
 
 // Close delegates a close operation to the underlying connection, unregisters
@@ -199,7 +199,7 @@ func (c *meteredConn) Close() error {
 			Type:    PeerHandshakeFailed,
 			IP:      c.ip,
 			Elapsed: time.Since(c.connected),
-		})
+		}, "4")
 		activePeerGauge.Dec(1)
 		return err
 	}
@@ -211,7 +211,7 @@ func (c *meteredConn) Close() error {
 			Type: PeerDisconnected,
 			IP:   c.ip,
 			ID:   id,
-		})
+		}, "5")
 		activePeerGauge.Dec(1)
 		return err
 	}
@@ -232,7 +232,7 @@ func (c *meteredConn) Close() error {
 		ID:      id,
 		Ingress: ingress,
 		Egress:  egress,
-	})
+	}, "6")
 	activePeerGauge.Dec(1)
 	return err
 }

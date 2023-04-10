@@ -7,11 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elastos/Elastos.ELA.SideChain/service"
-
 	elacom "github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/utils/http"
 
+	service "github.com/elastos/Elastos.ELA/servers/errors"
 	"github.com/elastos/Elastos.ELA.SideChain.EID/common"
 	"github.com/elastos/Elastos.ELA.SideChain.EID/core/rawdb"
 	"github.com/elastos/Elastos.ELA.SideChain.EID/core/vm"

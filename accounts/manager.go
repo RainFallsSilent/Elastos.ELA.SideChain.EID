@@ -121,7 +121,7 @@ func (am *Manager) update() {
 			am.lock.Unlock()
 
 			// Notify any listeners of the event
-			am.feed.Send(event)
+			am.feed.Send(event, "9")
 
 		case errc := <-am.quit:
 			// Manager terminating, return

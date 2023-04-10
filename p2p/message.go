@@ -291,7 +291,7 @@ func (ev *msgEventer) ReadMsg() (Msg, error) {
 		MsgSize:       &msg.Size,
 		LocalAddress:  ev.localAddress,
 		RemoteAddress: ev.remoteAddress,
-	})
+	}, "1")
 	return msg, nil
 }
 
@@ -310,7 +310,7 @@ func (ev *msgEventer) WriteMsg(msg Msg) error {
 		MsgSize:       &msg.Size,
 		LocalAddress:  ev.localAddress,
 		RemoteAddress: ev.remoteAddress,
-	})
+	}, "2")
 	return nil
 }
 

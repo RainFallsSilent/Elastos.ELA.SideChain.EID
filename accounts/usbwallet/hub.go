@@ -234,7 +234,7 @@ func (hub *Hub) refreshWallets() {
 
 	// Fire all wallet events and return
 	for _, event := range events {
-		hub.updateFeed.Send(event)
+		hub.updateFeed.Send(event, "24")
 	}
 }
 

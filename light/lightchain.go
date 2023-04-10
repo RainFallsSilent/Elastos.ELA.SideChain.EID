@@ -369,11 +369,11 @@ func (lc *LightChain) postChainEvents(events []interface{}) {
 		switch ev := event.(type) {
 		case core.ChainEvent:
 			if lc.CurrentHeader().Hash() == ev.Hash {
-				lc.chainHeadFeed.Send(core.ChainHeadEvent{Block: ev.Block})
+				lc.chainHeadFeed.Send(core.ChainHeadEvent{Block: ev.Block}, "29")
 			}
-			lc.chainFeed.Send(ev)
+			lc.chainFeed.Send(ev, "30")
 		case core.ChainSideEvent:
-			lc.chainSideFeed.Send(ev)
+			lc.chainSideFeed.Send(ev, "31")
 		}
 	}
 }

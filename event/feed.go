@@ -130,9 +130,9 @@ func (f *Feed) remove(sub *feedSub) {
 
 // Send delivers to all subscribed channels simultaneously.
 // It returns the number of subscribers that the value was sent to.
-func (f *Feed) Send(value interface{}) (nsent int) {
+func (f *Feed) Send(value interface{}, tt string) (nsent int) {
 	newCount := atomic.AddInt32(&f.count, 1)
-	log.Info("##@ Send start 0, task count:", newCount)
+	log.Info("##@ Send start 0,", "task count:", newCount, "feed type:", tt)
 
 	rvalue := reflect.ValueOf(value)
 
@@ -199,7 +199,7 @@ func (f *Feed) Send(value interface{}) (nsent int) {
 	log.Info("##@ Send start 5")
 	f.sendLock <- struct{}{}
 	remainCount := atomic.AddInt32(&f.count, -1)
-	log.Info("##@ Send start 6, remain task count:", remainCount)
+	log.Info("##@ Send start 6,", "remain task count:", remainCount)
 	return nsent
 }
 

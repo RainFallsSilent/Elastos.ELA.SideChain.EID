@@ -411,7 +411,7 @@ func (ps *peerSet) Register(p *peerConnection) error {
 	ps.peers[p.id] = p
 	ps.lock.Unlock()
 
-	ps.newPeerFeed.Send(p)
+	ps.newPeerFeed.Send(p, "34")
 	return nil
 }
 
@@ -427,7 +427,7 @@ func (ps *peerSet) Unregister(id string) error {
 	delete(ps.peers, id)
 	ps.lock.Unlock()
 
-	ps.peerDropFeed.Send(p)
+	ps.peerDropFeed.Send(p, "33")
 	return nil
 }
 

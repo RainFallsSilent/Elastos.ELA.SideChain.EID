@@ -403,7 +403,7 @@ func (w *Wallet) Open(passphrase string) error {
 	go w.selfDerive()
 
 	// Notify anyone listening for wallet events that a new device is accessible
-	go w.Hub.updateFeed.Send(accounts.WalletEvent{Wallet: w, Kind: accounts.WalletOpened})
+	go w.Hub.updateFeed.Send(accounts.WalletEvent{Wallet: w, Kind: accounts.WalletOpened}, "23")
 
 	return nil
 }
